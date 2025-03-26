@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minha API</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+
+    
+</head>
+<body>
+    <div class="applicationname-light-login">Hi IPEN Development Team!</div>
+    <br><br><br><br>
+    <fieldset>
+        <legend>Produção Hoje</legend>
+        <table id="minhaTabela" class="cell-border compact stripe hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Produto</th>
+                    <th>Lote</th>
+                    <th>Série</th>
+                    <th>Qtde</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </fieldset>
+    
+    <hr>
+
+    <fieldset>
+        <legend>Nfs Agora</legend>
+        <table id="minhaTabela1" class="cell-border compact stripe hover" style="width:100%">
+        <thead>
+            <tr>
+                <th>nNf</th>
+                <th>Emissor</th>
+                <th>Tentativas</th>
+                <th>UF</th>
+                <th>Chave</th>
+                <th>Serie</th>
+                <th>Atividade</th>
+                <th>Chave NF</th>
+                <th>Protocolo</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+        </table>
+    </fieldset>
+
+    <hr>
+
+    <fieldset>
+        <legend>Produção Amanhã</legend>
+        <table id="minhaTabela2" class="cell-border compact stripe hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Produto</th>
+                    <th>Lote</th>
+                    <th>Série</th>
+                    <th>Qtde</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </fieldset>
+
+    <fieldset>
+        <legend>Cobrança de Blindagens</legend>
+        <table id="minhaTabela3" class="cell-border compact stripe hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Resp</th>
+                    <th>CGC</th>
+                    <th>E-mail</th>
+                    <th>Respons</th>
+                    <th>Razão Social</th>
+                    <th>Siafi</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </fieldset>
+
+
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+  
+
+    <script>
+
+        $(document).ready(function() {
+        var tabela = $('#minhaTabela').DataTable({
+            "ajax": {
+                "url": "http://i57398:3000/pedidos/producaohoje",
+                "dataSrc": ""
+            },
+            "bPaginate": false,
+            "bFilter": false,
+            "bInfo": false,
+            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+            "columns":  [
+                { data: 'id' },
+                { data: 'p110prod' },
+                { data: 'p110lote' },
+                { data: 'p110serie' },
+                { data: 'regs' },
+            ]
+        });
+
+        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
+        setInterval(function() {
+            tabela.ajax.reload();
+        }, 5000);
+    });
+
+
+    $(document).ready(function() {
+        var tabela = $('#minhaTabela1').DataTable({
+            "ajax": {
+                "url": "http://i57398:3000/pedidos/nfandamento",
+                "dataSrc": ""
+            },
+            "bPaginate": false,
+            "bFilter": false,
+            "bInfo": false,
+            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+            "columns":  [
+                { data: 'nNF' },
+                { data: 'emissor' },
+                { data: 'tentativas' },
+                { data: 'enderdest_UF' },
+                { data: 'p110chve' },
+                { data: 'p110serie' },
+                { data: 'p110atv' },
+                { data: 'chave_acesso' },
+                { data: 'protocolo_autorizacao' },
+                
+                
+            ]
+        });
+
+        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
+        setInterval(function() {
+            tabela.ajax.reload();
+        }, 5000);
+    });
+
+
+    $(document).ready(function() {
+        var tabela = $('#minhaTabela2').DataTable({
+            "ajax": {
+                "url": "http://i57398:3000/pedidos/producaoamanha",
+                "dataSrc": ""
+            },
+            "bPaginate": false,
+            "bFilter": false,
+            "bInfo": false,
+            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+            "columns":  [
+                { data: 'p110prod' },
+                { data: 'p110lote' },
+                { data: 'p110serie' },
+                { data: 'regs' },
+            ]
+        });
+
+        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
+        setInterval(function() {
+            tabela.ajax.reload();
+        }, 5000);
+    });
+
+
+    
+
+    $(document).ready(function() {
+        var tabela = $('#minhaTabela3').DataTable({
+            "ajax": {
+                "url": "http://i57398:3000/pedidos/cobrancablindagem",
+                "dataSrc": ""
+            },
+            "bPaginate": false,
+            "bFilter": false,
+            "bInfo": false,
+            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+            "columns":  [
+                { data: 'p110ccli' },
+                { data: 'p110cres' },
+                { data: 'cgc_cli' },
+                { data: 'email' },
+                { data: 'responsavel' },
+                { data: 'raz_soc' },
+                { data: 'siafi' },
+            ]
+        });
+
+        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
+        setInterval(function() {
+            tabela.ajax.reload();
+        }, 5000);
+    });
+
+    
+
+
+    </script>
+
+
+</body>
+</html>
+
