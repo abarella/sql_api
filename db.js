@@ -3,8 +3,8 @@ const sql = require('mssql');
 const config ={
     server: "UIRAPURU",
     database: "VendasPelicano",
-    user: "xxxxx",
-    password: "xxxxxxx",
+    user: "crsa",
+    password: "cr9537",
     options: {
         trustedConnection: true,
         enableArithAbort: true,
