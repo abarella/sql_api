@@ -34,4 +34,5 @@ legend{
     font-size: 2em;
     color:#fff;
     padding: 10px;
+    z-index: 3000;
   }
