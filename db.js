@@ -9,7 +9,7 @@ class DatabaseFacade {
       user: "crsa",
       password: "cr9537",
       options: {
-        trustedConnection: false,
+        trustedConnection: true,
         enableArithAbort: false,
         trustServerCertificate: true,
       },
