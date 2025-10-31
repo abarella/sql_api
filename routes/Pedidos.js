@@ -21,6 +21,7 @@ module.exports = (db) => {
 
   // Adicione outras rotas aqui da mesma forma...
 // Rota: Retorna pedidos por chave
+
 router.get("/lote/:p110chve", async (req, res) => {
   const { p110chve } = req.params;
   if (!p110chve) {
@@ -84,7 +85,10 @@ router.get("/nfandamento", async (req, res) => {
             @mes INT = MONTH(GETDATE()),
             @ano INT = YEAR(GETDATE());
     SELECT 
-      a.nNF, a.emissor, tentativas, enderdest_UF, b.p110chve, b.p110serie, p110atv,
+      a.nNF, a.emissor, tentativas, enderdest_UF, 
+      case when b.p110prod <> 'EMB.GER.' then b.p110chve
+        else b.p110lotekt end as p110chve,
+      b.p110serie, p110atv,
       a.notafis_oid, a.chave_acesso, a.protocolo_autorizacao, dEmi, a.hSaiEnt,
       b.p110trn2, a.dest_xNome, d.p257_viatrans, b.p110ccli, c.Tot_prod,
       a.enderDest_UF
@@ -92,7 +96,8 @@ router.get("/nfandamento", async (req, res) => {
     INNER JOIN ipenfat..notafis c ON a.notafis_oid = c.notafis_oid
     LEFT JOIN vendaspelicano..TCACP110 b ON b.p110fisc = c.No_Nota
     LEFT JOIN vendaspelicano..T0257_TRANSPORTE2 d ON d.p257_viatransid = b.p257_viatransid
-    WHERE protocolo_autorizacao IS NULL
+    WHERE 1=1
+      AND protocolo_autorizacao IS NULL
       AND YEAR(dEmi) = @ano
       AND MONTH(dEmi) = @mes
       AND DAY(dEmi) = @dia

@@ -4,7 +4,7 @@ const sql = require('mssql');
 class DatabaseFacade {
   constructor() {
     this.config = {
-      server: "TICOTECO",
+      server: "UIRAPURU",
       database: "VendasPelicano",
       user: "crsa",
       password: "cr9537",

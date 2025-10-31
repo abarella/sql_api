@@ -8,7 +8,7 @@
     
 </head>
 <body>
-    <div class="applicationname-light-login">Hi TICOTECO Development Team!</div>
+    <div class="applicationname-light-login">Hi BASIS Development Team!</div>
     <br><br><br><br>
     <fieldset>
         <legend>Produção Hoje</legend>
@@ -41,7 +41,7 @@
                 <th>Serie</th>
                 <th>Atividade</th>
                 <th>Chave NF</th>
-                <th>Protocolo</th>
+                <th>Transportadora</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -96,7 +96,7 @@
         $(document).ready(function() {
         var tabela = $('#minhaTabela').DataTable({
             "ajax": {
-                "url": "http://abjnote:3000/pedidos/producaohoje",
+                "url": "http://localhost:3000/pedidos/producaohoje",
                 "dataSrc": ""
             },
             "bPaginate": false,
@@ -122,7 +122,7 @@
     $(document).ready(function() {
         var tabela = $('#minhaTabela1').DataTable({
             "ajax": {
-                "url": "http://abjnote:3000/pedidos/nfandamento",
+                "url": "http://localhost:3000/pedidos/nfandamento",
                 "dataSrc": ""
             },
             "bPaginate": false,
@@ -138,7 +138,7 @@
                 { data: 'p110serie' },
                 { data: 'p110atv' },
                 { data: 'chave_acesso' },
-                { data: 'protocolo_autorizacao' },
+                { data: 'p110trn2' },
                 
                 
             ]
@@ -154,7 +154,7 @@
     $(document).ready(function() {
         var tabela = $('#minhaTabela2').DataTable({
             "ajax": {
-                "url": "http://abjnote:3000/pedidos/producaoamanha",
+                "url": "http://localhost:3000/pedidos/producaoamanha",
                 "dataSrc": ""
             },
             "bPaginate": false,
@@ -181,7 +181,7 @@
     $(document).ready(function() {
         var tabela = $('#minhaTabela3').DataTable({
             "ajax": {
-                "url": "http://abjnote:3000/pedidos/cobrancablindagem",
+                "url": "http://localhost:3000/pedidos/cobrancablindagem",
                 "dataSrc": ""
             },
             "bPaginate": false,
