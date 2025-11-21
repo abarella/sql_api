@@ -54,20 +54,40 @@ Uma API REST desenvolvida em Node.js para monitoramento em tempo real de produç
 
 ### 📊 Monitoramento de Produção
 - **Produção do Dia**: Visualiza produtos em produção no dia atual
+  - Exibe ID, Produto, Lote, Série e Quantidade
+  - **Contador Total**: Soma automática de todas as quantidades em produção
+  - Atualização automática a cada 5 segundos
 - **Produção do Próximo Dia**: Planejamento de produção para o dia seguinte
+  - Exibe Produto, Lote, Série e Quantidade
+  - **Contador Total**: Soma automática das quantidades planejadas
+  - Visão antecipada para organização da produção
 - **Agrupamento por Lote/Série**: Organização inteligente dos dados de produção
-- **Contadores Automáticos**: Quantidades e registros em tempo real
+- **Exclusão Automática**: Filtra produtos como 'EMB.GER.' e cliente específico
 
 ### 📄 Gestão de Notas Fiscais
 - **Notas em Andamento**: Monitoramento de NFs que estão sendo processadas
+  - Número da NF, Emissor, Tentativas de envio
+  - UF de destino, Chave de acesso, Série
+  - **Transportadora**: Informação da transportadora (campo p110trn2)
+  - Chave NF e Atividade
+  - **Contador de Registros**: Quantidade total de NFs em processamento
+  - Atualização em tempo real a cada 5 segundos
 - **Status de Autorização**: Acompanhamento do protocolo de autorização
-- **Informações de Transporte**: Dados de transportadoras e destinos
+- **Informações de Transporte**: Dados completos de transportadoras e destinos
 - **Rastreamento por Chave**: Busca detalhada por chave de acesso
 
 ### 🔍 Consultas Avançadas
-- **Busca por Lote**: Consulta específica via stored procedure
-- **Filtros Automáticos**: Exclusão de registros não relevantes
-- **Dados Consolidados**: Informações agregadas e organizadas
+- **Busca por Lote**: Consulta específica via stored procedure (`usp_getPedidos`)
+- **Filtros Automáticos**: 
+  - Exclusão de registros não relevantes (p110situ = 0)
+  - Produtos específicos descartados
+  - Clientes específicos filtrados
+- **Dados Consolidados**: Informações agregadas e organizadas por data e lote
+
+### 📈 Contadores e Totalizadores
+- **Soma de Quantidades**: Totalização automática de produtos em produção (hoje e amanhã)
+- **Contagem de NFs**: Quantidade de notas fiscais em processamento
+- **Atualização Dinâmica**: Todos os contadores são atualizados automaticamente
 
 ## 📥 Instalação
 
@@ -153,14 +173,14 @@ curl http://localhost:3000/pedidos/producaohoje
 
 ### Base URL: `http://localhost:3000`
 
-| Método | Endpoint | Descrição | Parâmetros |
-|--------|----------|-----------|------------|
-| `GET` | `/pedidos/todosPedidos` | Lista os últimos 20 pedidos | - |
-| `GET` | `/pedidos/lote/:p110chve` | Busca pedidos por chave específica | `p110chve` (string) |
-| `GET` | `/pedidos/producaohoje` | Produção do dia atual | - |
-| `GET` | `/pedidos/producaoamanha` | Produção do próximo dia | - |
-| `GET` | `/pedidos/nfandamento` | Notas fiscais em processamento | - |
-| `GET` | `/pedidos/cobrancablindagem` | Lista clientes para cobrança | - |
+| Método | Endpoint | Descrição | Campos Retornados |
+|--------|----------|-----------|-------------------|
+| `GET` | `/pedidos/todosPedidos` | Lista os últimos 20 pedidos | Todos os campos da tabela TCACP110 |
+| `GET` | `/pedidos/lote/:p110chve` | Busca pedidos por chave específica via stored procedure | Resultado de `usp_getPedidos` |
+| `GET` | `/pedidos/producaohoje` | Produção do dia atual agrupada | `id`, `p110prod`, `p110lote`, `p110serie`, `regs` (quantidade) |
+| `GET` | `/pedidos/producaoamanha` | Produção do próximo dia agrupada | `p110prod`, `p110lote`, `p110serie`, `regs` (quantidade) |
+| `GET` | `/pedidos/nfandamento` | Notas fiscais em processamento | `nNF`, `emissor`, `tentativas`, `enderdest_UF`, `p110chve`, `p110serie`, `p110atv`, `chave_acesso`, `p110trn2` (transportadora), e mais |
+| `GET` | `/pedidos/cobrancablindagem` | Lista clientes para cobrança via stored procedure | Resultado de `sp_BlindagemListaCliente` |
 
 ### Exemplos de Uso
 
@@ -202,7 +222,13 @@ GET /pedidos/nfandamento
     "enderdest_UF": "SP",
     "p110chve": "L2024001",
     "p110serie": "001",
-    "chave_acesso": "35240112345678000123550010000123451234567890"
+    "p110atv": "Ativo",
+    "chave_acesso": "35240112345678000123550010000123451234567890",
+    "p110trn2": "TRANSPORTADORA XYZ LTDA",
+    "protocolo_autorizacao": "135240000123456",
+    "dEmi": "2024-11-21",
+    "dest_xNome": "CLIENTE ABC",
+    "Tot_prod": 1500.00
   }
 ]
 ```
@@ -224,19 +250,33 @@ GET /pedidos/nfandamento
 
 ### Seções do Dashboard
 
-1. **📈 Produção Hoje**
-   - Lista produtos em produção
-   - Mostra lotes, séries e quantidades
-   - Numeração automática
+1. **📈 Produção Hoje (Total: X)**
+   - Lista produtos em produção no dia atual
+   - Colunas: ID, Produto, Lote, Série, Qtde
+   - **Contador no título**: Soma total de todas as quantidades
+   - Numeração automática de registros
+   - Atualização a cada 5 segundos
 
-2. **📋 Notas Fiscais Agora**
-   - Status de processamento
-   - Informações de transporte
-   - Chaves de acesso
+2. **📋 Notas Fiscais Agora (X)**
+   - Status de processamento de NFs
+   - Colunas: nNf, Emissor, Tentativas, UF, Chave, Serie, Atividade, Chave NF, **Transportadora**
+   - **Contador no título**: Quantidade de NFs em processamento
+   - Informações de transporte e destino
+   - Chaves de acesso completas
+   - Atualização em tempo real
 
-3. **📅 Produção Amanhã**
-   - Planejamento do próximo dia
-   - Visão antecipada da produção
+3. **📅 Produção Amanhã (Total: X)**
+   - Planejamento do próximo dia útil
+   - Colunas: Produto, Lote, Série, Qtde
+   - **Contador no título**: Soma total das quantidades planejadas
+   - Visão antecipada para organização
+   - Atualização automática
+
+### Features da Interface
+- **Contadores Dinâmicos**: Todos os títulos exibem quantidades/somas atualizadas
+- **Auto-refresh**: Dados atualizados automaticamente a cada 5 segundos
+- **DataTables**: Tabelas interativas com ordenação e busca
+- **Design Responsivo**: Adaptável a diferentes resoluções
 
 ## 📁 Estrutura do Projeto
 
@@ -259,11 +299,34 @@ sql_api/
 
 ### Descrição dos Arquivos Principais
 
-- **`index.js`**: Servidor Express principal com configuração de middlewares
-- **`db.js`**: Classe DatabaseFacade para abstração do banco de dados
-- **`routes/Pedidos.js`**: Endpoints organizados para consultas de pedidos
-- **`public/index.html`**: Interface web com tabelas dinâmicas
-- **`public/style.css`**: Estilos customizados para o dashboard
+- **`index.js`**: Servidor Express principal
+  - Configuração de middlewares (CORS, body-parser)
+  - Inicialização da conexão com banco
+  - Servidor de arquivos estáticos
+  - Porta 3000
+
+- **`db.js`**: Classe DatabaseFacade
+  - Abstração da conexão SQL Server
+  - Suporte a queries e stored procedures
+  - Pool de conexões
+  - Tratamento de erros
+
+- **`routes/Pedidos.js`**: Rotas da API
+  - 6 endpoints principais
+  - Queries otimizadas com filtros
+  - Parâmetros nomeados para stored procedures
+  - Handler centralizado de requisições
+
+- **`public/index.html`**: Interface Web
+  - 3 tabelas DataTables
+  - Contadores dinâmicos nos títulos
+  - Auto-refresh a cada 5 segundos
+  - Integração com jQuery e DataTables
+
+- **`public/style.css`**: Estilos CSS
+  - Design moderno e responsivo
+  - Gradientes e borders customizados
+  - Tipografia otimizada
 
 ## 🔧 Scripts Disponíveis
 
@@ -271,15 +334,36 @@ sql_api/
 # Instalar dependências
 npm install
 
-# Executar em modo desenvolvimento
+# Atualizar dependências
+npm update
+
+# Executar em modo desenvolvimento (com nodemon - auto-reload)
 npm run dev
 
-# Executar em modo produção
+# Executar em modo produção (node puro)
 npm start
 
-# Verificar dependências
+# Verificar dependências e vulnerabilidades
 npm audit
+
+# No Windows, use npm.cmd para evitar erros de ExecutionPolicy:
+npm.cmd run dev
+npm.cmd start
 ```
+
+### Diferenças entre Dev e Produção
+
+- **`npm run dev`** (Desenvolvimento):
+  - Usa `nodemon` para reload automático
+  - Detecta mudanças em arquivos .js
+  - Reinicia o servidor automaticamente
+  - Ideal para desenvolvimento ativo
+
+- **`npm start`** (Produção):
+  - Usa `node` diretamente
+  - Mais rápido e estável
+  - Sem reload automático
+  - Ideal para ambiente de produção
 
 ## 🚀 Deploy e Produção
 

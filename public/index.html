@@ -11,7 +11,7 @@
     <div class="applicationname-light-login">Hi BASIS Development Team!</div>
     <br><br><br><br>
     <fieldset>
-        <legend>Produção Hoje</legend>
+        <legend>Produção Hoje <span id="sumQtde">(0)</span></legend>
         <table id="minhaTabela" class="cell-border compact stripe hover" style="width:100%">
             <thead>
                 <tr>
@@ -29,7 +29,7 @@
     <hr>
 
     <fieldset>
-        <legend>Nfs Agora</legend>
+        <legend>Nfs Agora <span id="countNfs">(0)</span></legend>
         <table id="minhaTabela1" class="cell-border compact stripe hover" style="width:100%">
         <thead>
             <tr>
@@ -51,7 +51,7 @@
     <hr>
 
     <fieldset>
-        <legend>Produção Amanhã</legend>
+        <legend>Produção Amanhã <span id="sumQtdeAmanha">(0)</span></legend>
         <table id="minhaTabela2" class="cell-border compact stripe hover" style="width:100%">
             <thead>
                 <tr>
@@ -97,7 +97,13 @@
         var tabela = $('#minhaTabela').DataTable({
             "ajax": {
                 "url": "http://localhost:3000/pedidos/producaohoje",
-                "dataSrc": ""
+                "dataSrc": function(json) {
+                    var soma = json.reduce(function(total, item) {
+                        return total + (parseInt(item.regs) || 0);
+                    }, 0);
+                    $('#sumQtde').text('(' + soma + ')');
+                    return json;
+                }
             },
             "bPaginate": false,
             "bFilter": false,
@@ -123,7 +129,10 @@
         var tabela = $('#minhaTabela1').DataTable({
             "ajax": {
                 "url": "http://localhost:3000/pedidos/nfandamento",
-                "dataSrc": ""
+                "dataSrc": function(json) {
+                    $('#countNfs').text('(' + json.length + ')');
+                    return json;
+                }
             },
             "bPaginate": false,
             "bFilter": false,
@@ -155,7 +164,13 @@
         var tabela = $('#minhaTabela2').DataTable({
             "ajax": {
                 "url": "http://localhost:3000/pedidos/producaoamanha",
-                "dataSrc": ""
+                "dataSrc": function(json) {
+                    var soma = json.reduce(function(total, item) {
+                        return total + (parseInt(item.regs) || 0);
+                    }, 0);
+                    $('#sumQtdeAmanha').text('(' + soma + ')');
+                    return json;
+                }
             },
             "bPaginate": false,
             "bFilter": false,
