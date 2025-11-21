@@ -291,7 +291,9 @@ sql_api/
 │   └── 📄 Pedidos_ORIGINAL.js
 ├── 📁 public/               # Frontend estático
 │   ├── 📄 index.html        # Interface principal
-│   └── 📄 style.css         # Estilos CSS
+│   ├── 📄 style.css         # Estilos CSS
+│   ├── 📄 favicon.svg       # Ícone do site (SVG)
+│   └── 📄 favicon.ico       # Ícone do site (ICO)
 └── 📁 backup/               # Versões originais
     ├── 📄 db_ORIGINAL.js
     └── 📄 index_ORIGINAL.js

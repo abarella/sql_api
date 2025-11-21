@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1976D2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2196F3;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#grad)"/>
+  <g fill="#fff">
+    <!-- Ícone de dashboard com barras de gráfico -->
+    <rect x="12" y="35" width="10" height="17" rx="2"/>
+    <rect x="27" y="25" width="10" height="27" rx="2"/>
+    <rect x="42" y="15" width="10" height="37" rx="2"/>
+  </g>
+</svg>
+

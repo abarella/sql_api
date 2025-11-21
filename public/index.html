@@ -1,15 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>Minha API</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard API - Vendas Internet</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
-
-    
+    <style>
+        body {
+            margin: 0;
+            padding-top: 85px; /* Espaço para o cabeçalho fixo */
+            font-size: 12px; /* Diminui a fonte global */
+        }
+        .container-main {
+            display: flex;
+            gap: 10px; /* Reduzido de 20px para 10px */
+            padding: 10px; /* Reduzido de 20px para 10px */
+            margin-top: 0;
+        }
+        .content-left {
+            flex: 0 0 58%; /* Ajustado para compensar gap e padding */
+        }
+        .content-right {
+            flex: 0 0 38%; /* Ajustado para compensar gap e padding */
+            border-left: 2px solid #ccc;
+            padding-left: 10px; /* Reduzido de 20px para 10px */
+        }
+        .header-title {
+            text-align: center;
+        }
+        /* Ajusta o tamanho das tabelas */
+        table {
+            font-size: 11px;
+        }
+        /* Ajusta o tamanho das legends */
+        legend {
+            font-size: 16px !important;
+        }
+    </style>
 </head>
 <body>
-    <div class="applicationname-light-login">Hi BASIS Development Team!</div>
-    <br><br><br><br>
+    <div class="applicationname-light-login header-title">Olá Development Team!</div>
+    
+    <div class="container-main">
+        <!-- Área de Visualização (70%) -->
+        <div class="content-left">
     <fieldset>
         <legend>Produção Hoje <span id="sumQtde">(0)</span></legend>
         <table id="minhaTabela" class="cell-border compact stripe hover" style="width:100%">
@@ -34,6 +71,7 @@
         <thead>
             <tr>
                 <th>nNf</th>
+                <th>OID</th>
                 <th>Emissor</th>
                 <th>Tentativas</th>
                 <th>UF</th>
@@ -64,26 +102,36 @@
             <tbody></tbody>
         </table>
     </fieldset>
+        </div>
+        <!-- Fim Área de Visualização (70%) -->
 
-    <!--
-    <fieldset>
-        <legend>Cobrança de Blindagens</legend>
-        <table id="minhaTabela3" class="cell-border compact stripe hover" style="width:100%">
-            <thead>
-                <tr>
-                    <th>Cliente</th>
-                    <th>Resp</th>
-                    <th>CGC</th>
-                    <th>E-mail</th>
-                    <th>Respons</th>
-                    <th>Razão Social</th>
-                    <th>Siafi</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </fieldset>
--->
+        <!-- Área de Operações PUT (30%) -->
+        <div class="content-right">
+            
+            <fieldset>
+                <legend>Operações</legend>
+                
+                <!-- Grupo: Zerar Tentativas -->
+                <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px;">Zerar Tentativas NF:</label>
+                    <div style="display: flex; gap: 8px; align-items: stretch;">
+                        <input type="number" id="inputNotafisOid" placeholder="OID" 
+                               style="flex: 1; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
+                        <button id="btnZerarTentativas" title="Zerar Tentativas" 
+                                style="padding: 0 12px; font-size: 20px; background-color: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            🔄
+                        </button>
+                    </div>
+                    <div id="mensagemResultado" style="margin-top: 10px; padding: 8px; border-radius: 4px; font-size: 12px; display: none;"></div>
+                </div>
+                
+                <!-- Outros grupos virão aqui -->
+                
+            </fieldset>
+        </div>
+        <!-- Fim Área de Operações PUT (30%) -->
+    </div>
+    <!-- Fim Container Principal -->
 
 
 
@@ -92,11 +140,17 @@
   
 
     <script>
+        // Detecta o hostname atual e usa a URL correta da API
+        var API_BASE_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : 'http://' + window.location.hostname + ':3000';
+        
+        console.log('API Base URL:', API_BASE_URL);
 
         $(document).ready(function() {
         var tabela = $('#minhaTabela').DataTable({
             "ajax": {
-                "url": "http://localhost:3000/pedidos/producaohoje",
+                "url": API_BASE_URL + "/pedidos/producaohoje",
                 "dataSrc": function(json) {
                     var soma = json.reduce(function(total, item) {
                         return total + (parseInt(item.regs) || 0);
@@ -128,7 +182,7 @@
     $(document).ready(function() {
         var tabela = $('#minhaTabela1').DataTable({
             "ajax": {
-                "url": "http://localhost:3000/pedidos/nfandamento",
+                "url": API_BASE_URL + "/pedidos/nfandamento",
                 "dataSrc": function(json) {
                     $('#countNfs').text('(' + json.length + ')');
                     return json;
@@ -140,6 +194,7 @@
             "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
             "columns":  [
                 { data: 'nNF' },
+                { data: 'notafis_oid' },
                 { data: 'emissor' },
                 { data: 'tentativas' },
                 { data: 'enderdest_UF' },
@@ -163,7 +218,7 @@
     $(document).ready(function() {
         var tabela = $('#minhaTabela2').DataTable({
             "ajax": {
-                "url": "http://localhost:3000/pedidos/producaoamanha",
+                "url": API_BASE_URL + "/pedidos/producaoamanha",
                 "dataSrc": function(json) {
                     var soma = json.reduce(function(total, item) {
                         return total + (parseInt(item.regs) || 0);
@@ -196,7 +251,7 @@
     $(document).ready(function() {
         var tabela = $('#minhaTabela3').DataTable({
             "ajax": {
-                "url": "http://localhost:3000/pedidos/cobrancablindagem",
+                "url": API_BASE_URL + "/pedidos/cobrancablindagem",
                 "dataSrc": ""
             },
             "bPaginate": false,
@@ -221,7 +276,67 @@
     });
 
     
-
+    
+    // Função para o botão Zerar Tentativas
+    $(document).ready(function() {
+        $('#btnZerarTentativas').on('click', function() {
+            var notafisOid = $('#inputNotafisOid').val();
+            var mensagemDiv = $('#mensagemResultado');
+            
+            // Validação
+            if (!notafisOid || notafisOid.trim() === '') {
+                mensagemDiv.css('background-color', '#f44336').css('color', 'white').text('Por favor, informe o Notafis OID').show();
+                
+                // Oculta a mensagem após 3 segundos
+                setTimeout(function() {
+                    mensagemDiv.fadeOut();
+                }, 3000);
+                
+                return;
+            }
+            
+            if (confirm('Tem certeza que deseja zerar as tentativas da NF OID: ' + notafisOid + '?')) {
+                // Desabilita o botão durante a requisição
+                var btnZerar = $('#btnZerarTentativas');
+                btnZerar.prop('disabled', true).css('opacity', '0.5');
+                
+                $.ajax({
+                    url: API_BASE_URL + '/pedidos/zerartentativas/' + notafisOid,
+                    type: 'PUT',
+                    contentType: 'application/json',
+                    success: function(response) {
+                        mensagemDiv.css('background-color', '#4CAF50').css('color', 'white')
+                                   .text('Tentativas zeradas com sucesso!').show();
+                        $('#inputNotafisOid').val(''); // Limpa o campo
+                        
+                        // Recarrega a tabela de NFs
+                        $('#minhaTabela1').DataTable().ajax.reload();
+                        
+                        // Oculta a mensagem após 3 segundos
+                        setTimeout(function() {
+                            mensagemDiv.fadeOut();
+                        }, 3000);
+                    },
+                    error: function(xhr, status, error) {
+                        var errorMsg = xhr.responseJSON && xhr.responseJSON.error 
+                                       ? xhr.responseJSON.error 
+                                       : 'Erro ao zerar tentativas';
+                        mensagemDiv.css('background-color', '#f44336').css('color', 'white')
+                                   .text(errorMsg).show();
+                        
+                        // Oculta a mensagem após 3 segundos
+                        setTimeout(function() {
+                            mensagemDiv.fadeOut();
+                        }, 3000);
+                    },
+                    complete: function() {
+                        // Reabilita o botão
+                        btnZerar.prop('disabled', false).css('opacity', '1');
+                    }
+                });
+            }
+        });
+    });
 
     </script>
 

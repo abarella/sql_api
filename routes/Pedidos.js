@@ -114,5 +114,45 @@ router.get("/cobrancablindagem", async (req, res) => {
   await handleRequest(res, procedure, [], [], true);
 });
 
+// Rota PUT: Zerar tentativas de uma NF específica
+router.put("/zerartentativas/:notafis_oid", async (req, res) => {
+  const { notafis_oid } = req.params;
+  
+  // Validação do parâmetro
+  if (!notafis_oid || isNaN(notafis_oid)) {
+    return res.status(400).send({ error: "O parâmetro 'notafis_oid' deve ser um número válido." });
+  }
+
+  const query = `
+    UPDATE vendasInternet..TNFe_IDENTIFICACAO 
+    SET tentativas = 0
+    WHERE 1=1
+      AND protocolo_autorizacao IS NULL
+      AND notafis_oid = @notafis_oid
+  `;
+
+  try {
+    const result = await db.executeQuery(query, [notafis_oid], ["notafis_oid"]);
+    
+    if (result.rowsAffected && result.rowsAffected[0] > 0) {
+      res.send({ 
+        success: true, 
+        message: `Tentativas zeradas com sucesso para o OID ${notafis_oid}`,
+        rowsAffected: result.rowsAffected[0]
+      });
+    } else {
+      res.status(404).send({ 
+        error: `Nenhum registro encontrado com OID ${notafis_oid} ou já possui protocolo de autorização` 
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao zerar tentativas:', error);
+    res.status(500).send({ 
+      error: 'Erro ao zerar tentativas.', 
+      detalhe: error.message 
+    });
+  }
+});
+
   return router;
 };
