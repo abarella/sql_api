@@ -9,7 +9,6 @@ module.exports = (db) => {
       const result = await db.executeQuery(query, values, paramNames, isStoredProcedure);
       res.send(result.recordset);
     } catch (error) {
-      console.error(error);
       res.status(500).send({ error: 'Erro ao executar a consulta.', detalhe: error.message });
     }
   }
@@ -132,7 +131,7 @@ router.put("/zerartentativas/:notafis_oid", async (req, res) => {
   `;
 
   try {
-    const result = await db.executeQuery(query, [notafis_oid], ["notafis_oid"]);
+    const result = await db.executeQuery(query, [notafis_oid], ["notafis_oid"], false);
     
     if (result.rowsAffected && result.rowsAffected[0] > 0) {
       res.send({ 
@@ -146,9 +145,50 @@ router.put("/zerartentativas/:notafis_oid", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Erro ao zerar tentativas:', error);
     res.status(500).send({ 
       error: 'Erro ao zerar tentativas.', 
+      detalhe: error.message 
+    });
+  }
+});
+
+// Rota: Gravar autorização de NF
+router.put("/gravarautorizacao", async (req, res) => {
+  const { chave, autorizacao, dataHora } = req.body;
+  
+  // Validação dos parâmetros
+  if (!chave || !autorizacao || !dataHora) {
+    return res.status(400).send({ 
+      error: "Os campos 'chave', 'autorizacao' e 'dataHora' são obrigatórios." 
+    });
+  }
+  
+  // Validação do formato da chave (44 caracteres)
+  if (chave.length !== 44) {
+    return res.status(400).send({ 
+      error: "A chave de acesso deve ter 44 caracteres." 
+    });
+  }
+  
+  const query = "vendasinternet..PNFE_GRAVA_AUTORIZACAO";
+  
+  try {
+    const result = await db.executeQuery(
+      query,
+      [autorizacao, autorizacao, dataHora, dataHora, dataHora, chave, dataHora, 100, chave],
+      ["auto1", "auto2", "data1", "data2", "data3", "chave1", "data4", "param8", "chave2"],
+      true  // É stored procedure
+    );
+    
+    res.send({ 
+      success: true, 
+      message: "Autorização gravada com sucesso!",
+      chave: chave,
+      autorizacao: autorizacao
+    });
+  } catch (error) {
+    res.status(500).send({ 
+      error: 'Erro ao gravar autorização.', 
       detalhe: error.message 
     });
   }

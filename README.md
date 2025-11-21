@@ -89,6 +89,25 @@ Uma API REST desenvolvida em Node.js para monitoramento em tempo real de produç
 - **Contagem de NFs**: Quantidade de notas fiscais em processamento
 - **Atualização Dinâmica**: Todos os contadores são atualizados automaticamente
 
+### 🔧 Operações de Atualização (PUT)
+- **Zerar Tentativas de NF**:
+  - Permite zerar o contador de tentativas de envio de uma NF específica
+  - Busca por OID da nota fiscal
+  - Validação de campos obrigatórios
+  - Confirmação antes de executar
+  - Feedback visual de sucesso/erro
+  - Atualização automática da tabela após operação
+
+- **Gravar Autorização**:
+  - Grava protocolo de autorização de NF-e
+  - Campos: Chave (44 caracteres), Autorização, Data/Hora
+  - Validação de formato da chave de acesso
+  - Data/hora pré-preenchida com valor atual
+  - Conversão automática para formato SQL Server
+  - Executa stored procedure `PNFE_GRAVA_AUTORIZACAO`
+  - Mensagens temporárias (3 segundos) de sucesso/erro
+  - Interface responsiva com desabilitação de botão durante processamento
+
 ## 📥 Instalação
 
 ### Pré-requisitos
@@ -179,8 +198,10 @@ curl http://localhost:3000/pedidos/producaohoje
 | `GET` | `/pedidos/lote/:p110chve` | Busca pedidos por chave específica via stored procedure | Resultado de `usp_getPedidos` |
 | `GET` | `/pedidos/producaohoje` | Produção do dia atual agrupada | `id`, `p110prod`, `p110lote`, `p110serie`, `regs` (quantidade) |
 | `GET` | `/pedidos/producaoamanha` | Produção do próximo dia agrupada | `p110prod`, `p110lote`, `p110serie`, `regs` (quantidade) |
-| `GET` | `/pedidos/nfandamento` | Notas fiscais em processamento | `nNF`, `emissor`, `tentativas`, `enderdest_UF`, `p110chve`, `p110serie`, `p110atv`, `chave_acesso`, `p110trn2` (transportadora), e mais |
+| `GET` | `/pedidos/nfandamento` | Notas fiscais em processamento | `nNF`, `notafis_oid`, `emissor`, `tentativas`, `enderdest_UF`, `p110chve`, `p110serie`, `p110atv`, `chave_acesso`, `p110trn2` (transportadora) |
 | `GET` | `/pedidos/cobrancablindagem` | Lista clientes para cobrança via stored procedure | Resultado de `sp_BlindagemListaCliente` |
+| `PUT` | `/pedidos/zerartentativas/:notafis_oid` | Zera tentativas de envio de uma NF específica | `success`, `message`, `rowsAffected` |
+| `PUT` | `/pedidos/gravarautorizacao` | Grava autorização de NF-e via stored procedure | `success`, `message`, `chave`, `autorizacao` |
 
 ### Exemplos de Uso
 
@@ -217,6 +238,7 @@ GET /pedidos/nfandamento
 [
   {
     "nNF": 12345,
+    "notafis_oid": 2373763,
     "emissor": "EMPRESA XYZ",
     "tentativas": 1,
     "enderdest_UF": "SP",
@@ -231,6 +253,59 @@ GET /pedidos/nfandamento
     "Tot_prod": 1500.00
   }
 ]
+```
+
+#### 4. Zerar Tentativas de NF
+```bash
+PUT /pedidos/zerartentativas/2373763
+```
+
+**Resposta (Sucesso)**:
+```json
+{
+  "success": true,
+  "message": "Tentativas zeradas com sucesso para o OID 2373763",
+  "rowsAffected": 1
+}
+```
+
+**Resposta (NF não encontrada)**:
+```json
+{
+  "error": "Nenhum registro encontrado com OID 2373763 ou já possui protocolo de autorização"
+}
+```
+
+#### 5. Gravar Autorização de NF-e
+```bash
+PUT /pedidos/gravarautorizacao
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{
+  "chave": "35251000402552000550550010009100481023762234",
+  "autorizacao": "135253141831197",
+  "dataHora": "20251120 10:34:51"
+}
+```
+
+**Resposta (Sucesso)**:
+```json
+{
+  "success": true,
+  "message": "Autorização gravada com sucesso!",
+  "chave": "35251000402552000550550010009100481023762234",
+  "autorizacao": "135253141831197"
+}
+```
+
+**Resposta (Erro de Validação)**:
+```json
+{
+  "error": "A chave de acesso deve ter 44 caracteres."
+}
 ```
 
 ## 🌐 Interface Web
@@ -248,7 +323,12 @@ GET /pedidos/nfandamento
   - Borders customizados
   - Typography otimizada
 
-### Seções do Dashboard
+### Layout do Dashboard
+
+O dashboard é dividido em duas áreas principais:
+
+#### Área de Visualização (58% da tela)
+Contém as três tabelas de monitoramento em tempo real:
 
 1. **📈 Produção Hoje (Total: X)**
    - Lista produtos em produção no dia atual
@@ -259,7 +339,7 @@ GET /pedidos/nfandamento
 
 2. **📋 Notas Fiscais Agora (X)**
    - Status de processamento de NFs
-   - Colunas: nNf, Emissor, Tentativas, UF, Chave, Serie, Atividade, Chave NF, **Transportadora**
+   - Colunas: nNf, **OID**, Emissor, Tentativas, UF, Chave, Serie, Atividade, Chave NF, **Transportadora**
    - **Contador no título**: Quantidade de NFs em processamento
    - Informações de transporte e destino
    - Chaves de acesso completas
@@ -272,11 +352,46 @@ GET /pedidos/nfandamento
    - Visão antecipada para organização
    - Atualização automática
 
+#### Área de Operações (38% da tela)
+Painel lateral com operações de atualização de dados:
+
+1. **🔄 Zerar Tentativas NF**
+   - Campo de entrada: OID da nota fiscal (apenas números)
+   - Botão com ícone 🔄
+   - Validação de campo obrigatório
+   - Confirmação antes de executar
+   - Mensagens de feedback (sucesso/erro) com fade-out em 3 segundos
+   - Recarrega automaticamente a tabela "Nfs Agora" após sucesso
+   - **SQL Executada**: `UPDATE vendasInternet..TNFe_IDENTIFICACAO SET tentativas = 0 WHERE notafis_oid = ?`
+
+2. **💾 Gravar Autorização**
+   - **Chave de Acesso**: Campo texto (44 caracteres, monospace)
+   - **Autorização**: Campo texto para número da autorização
+   - **Data e Hora**: Campo datetime-local (pré-preenchido com data/hora atual)
+   - Botão verde "💾 Gravar Autorização" em largura total
+   - Validações:
+     - Todos os campos obrigatórios
+     - Chave deve ter exatamente 44 caracteres
+   - Conversão automática de data para formato SQL Server (YYYYMMDD HH:mm:ss)
+   - Confirmação antes de gravar
+   - Limpa campos após sucesso
+   - **Stored Procedure**: `EXEC vendasinternet..PNFE_GRAVA_AUTORIZACAO`
+   - Feedback visual com mensagens temporárias
+
 ### Features da Interface
 - **Contadores Dinâmicos**: Todos os títulos exibem quantidades/somas atualizadas
 - **Auto-refresh**: Dados atualizados automaticamente a cada 5 segundos
 - **DataTables**: Tabelas interativas com ordenação e busca
-- **Design Responsivo**: Adaptável a diferentes resoluções
+- **Design Responsivo**: Layout flexível 58/38 com gap e padding otimizados
+- **Validações em Tempo Real**: Campos obrigatórios e formato de dados
+- **Feedback Visual**: Mensagens de sucesso (verde) e erro (vermelho)
+- **UX Otimizada**: 
+  - Botões desabilitados durante processamento
+  - Opacidade reduzida em ações assíncronas
+  - Tooltips informativos
+  - Favicon personalizado (📊 dashboard)
+- **Acessibilidade via Hostname**: Suporte para acesso local e remoto
+- **UTF-8**: Acentuação correta em todos os textos
 
 ## 📁 Estrutura do Projeto
 
@@ -290,10 +405,11 @@ sql_api/
 │   ├── 📄 Pedidos.js        # Rotas da API de pedidos
 │   └── 📄 Pedidos_ORIGINAL.js
 ├── 📁 public/               # Frontend estático
-│   ├── 📄 index.html        # Interface principal
+│   ├── 📄 index.html        # Interface principal (dashboard + operações)
 │   ├── 📄 style.css         # Estilos CSS
-│   ├── 📄 favicon.svg       # Ícone do site (SVG)
-│   └── 📄 favicon.ico       # Ícone do site (ICO)
+│   ├── 📄 favicon.svg       # Ícone do site (SVG, melhor qualidade)
+│   ├── 📄 favicon.ico       # Ícone do site (ICO, compatibilidade)
+│   └── 📄 FAVICON_INFO.md   # Documentação do favicon
 └── 📁 backup/               # Versões originais
     ├── 📄 db_ORIGINAL.js
     └── 📄 index_ORIGINAL.js
@@ -369,6 +485,42 @@ npm.cmd start
 
 ## 🚀 Deploy e Produção
 
+### Deploy no IIS (Windows)
+
+Esta aplicação está configurada para rodar no IIS usando uma arquitetura híbrida:
+
+- **IIS (Porta 84)**: Serve arquivos estáticos (HTML, CSS, JS) da pasta `public/`
+- **Node.js (Porta 3000)**: Executa a API REST em segundo plano
+
+#### Guias de Instalação Disponíveis:
+
+- 📘 **`INSTALACAO_IIS.md`**: Guia completo de instalação no IIS com iisnode
+- 📋 **Scripts PowerShell**:
+  - `iniciar-node-background.ps1` - Inicia Node.js em background
+  - `parar-node.ps1` - Para todos os processos Node.js
+  - `liberar-firewall.ps1` - Configura firewall para acesso remoto
+
+#### Configuração Rápida:
+
+```powershell
+# 1. Aponte o IIS para a pasta public
+Caminho físico: C:\PROJETOS\sql_api\public
+Porta: 84
+
+# 2. Inicie o Node.js
+.\iniciar-node-background.ps1
+
+# 3. Acesse
+http://localhost:84/              # Dashboard
+http://localhost:3000/pedidos/*   # API direta
+```
+
+**Acesso via Hostname/Rede:**
+- O frontend detecta automaticamente o hostname
+- URLs da API ajustam-se dinamicamente
+- Suporta acesso via `localhost`, hostname ou IP
+- Exemplo: `http://ipen-d57398:84/`
+
 ### Recomendações para Produção
 
 1. **Variáveis de Ambiente**:
@@ -376,15 +528,19 @@ npm.cmd start
    - Use `dotenv` para gerenciar configurações
 
 2. **Processo Manager**:
-   - Use PM2 para gerenciamento do processo
+   - Use PM2 para gerenciamento do processo (Linux/Mac)
+   - Use serviços do Windows ou Task Scheduler (Windows)
    - Configure restart automático
 
-3. **Proxy Reverso**:
-   - Configure Nginx como proxy
-   - Implemente HTTPS
+3. **Segurança**:
+   - Configure firewall adequadamente
+   - Use HTTPS em produção
+   - Limite CORS a domínios específicos
+   - Não exponha porta 3000 externamente (use apenas no IIS)
 
 4. **Monitoramento**:
-   - Adicione logs estruturados
+   - Logs do Node.js: Verificar console ou redirecionar para arquivo
+   - Logs do IIS: Pasta `iisnode/` no projeto
    - Implemente health checks
 
 ### Exemplo de Configuração PM2
@@ -415,14 +571,101 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ---
 
+## 🔧 Troubleshooting
+
+### Problemas Comuns
+
+#### 1. `ERR_CONNECTION_REFUSED` ao acessar via hostname
+
+**Problema**: Dashboard carrega, mas dados não aparecem.
+
+**Causa**: Node.js não está rodando ou não está escutando em todas as interfaces.
+
+**Solução**:
+```powershell
+# Verifique se Node.js está rodando
+tasklist | findstr node
+
+# Se não estiver, inicie
+node index.js
+
+# Ou use o script
+.\iniciar-node-background.ps1
+```
+
+#### 2. Acentuação Quebrada
+
+**Problema**: Caracteres especiais aparecem como `Ã§Ã£o`.
+
+**Solução**: Já corrigido com:
+- `<meta charset="UTF-8">` no HTML
+- Middleware UTF-8 no Express
+- Configuração de encoding no SQL Server
+
+#### 3. Erro ao Zerar Tentativas
+
+**Problema**: "Erro ao zerar tentativas" ao clicar no botão.
+
+**Causa**: Node.js não foi reiniciado após atualização do código.
+
+**Solução**:
+```powershell
+# Pare e reinicie o Node.js
+taskkill /F /IM node.exe
+node index.js
+```
+
+#### 4. Favicon não Aparece
+
+**Problema**: Erro 404 para `favicon.ico`.
+
+**Solução**: Já corrigido! Os arquivos `favicon.svg` e `favicon.ico` estão na pasta `public/`.
+
+**Força o reload**:
+- `Ctrl + F5` no navegador
+- Ou abra em modo anônimo
+
+#### 5. IIS Mostra Código HTML como Texto
+
+**Problema**: IIS não processa, apenas mostra o código-fonte.
+
+**Causa**: IIS apontando para pasta errada ou falta de módulos.
+
+**Solução**:
+- IIS deve apontar para `C:\PROJETOS\sql_api\public`
+- Não instalar iisnode (não é necessário nesta configuração)
+- Consulte `INSTALACAO_IIS.md` para detalhes
+
+### Logs e Diagnóstico
+
+**Verificar Node.js:**
+```powershell
+# Ver processos rodando
+tasklist | findstr node
+
+# Ver porta em uso
+netstat -ano | findstr :3000
+```
+
+**Testar API diretamente:**
+```powershell
+curl http://localhost:3000/pedidos/producaohoje
+```
+
+**Logs do IIS:**
+- Diretório: `C:\PROJETOS\sql_api\iisnode\`
+- Arquivo mais recente: `*-stderr-*.txt` ou `*-stdout-*.txt`
+
 ## 📞 Suporte
 
 Para suporte técnico ou dúvidas:
 
 - **Email**: alberto@abjinfo.com.br
 - **Issues**: Abra uma issue no GitHub
-- **Documentação**: Consulte este README
+- **Documentação**: Consulte este README e os guias na pasta do projeto
 
 ---
 
 **Desenvolvido com ❤️ pela equipe BASIS Development Team**
+
+*Última atualização: Novembro 2025*

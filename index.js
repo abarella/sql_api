@@ -25,7 +25,7 @@ app.use(cors());
 
 db.connect()
   .then(() => console.log("Conectado ao banco de dados"))
-  .catch((error) => console.error("Erro ao conectar ao banco:", error));
+  .catch(() => {});
 
 app.use(express.static('public'));
 app.use("/pedidos", pedidosRoutes);

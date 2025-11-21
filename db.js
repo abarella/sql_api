@@ -43,7 +43,7 @@ class DatabaseFacade {
 
       let result = isStoredProcedure
         ? await request.execute(query)
-        : await request.batch(query);
+        : await request.query(query);
 
       if (outputParamName) {
         result = { ...result, [outputParamName]: request.parameters[outputParamName].value };
@@ -51,7 +51,6 @@ class DatabaseFacade {
 
       return result;
     } catch (error) {
-      console.error("Error executing query:", error);
       throw error;
     }
   }

@@ -112,20 +112,39 @@
                 <legend>Operações</legend>
                 
                 <!-- Grupo: Zerar Tentativas -->
-                <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px;">Zerar Tentativas NF:</label>
-                    <div style="display: flex; gap: 8px; align-items: stretch;">
+                <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: bold; font-size: 12px;">Zerar Tentativas NF:</label>
+                    <div style="display: flex; gap: 6px; align-items: stretch;">
                         <input type="number" id="inputNotafisOid" placeholder="OID" 
-                               style="flex: 1; padding: 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
+                               style="flex: 1; padding: 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
                         <button id="btnZerarTentativas" title="Zerar Tentativas" 
-                                style="padding: 0 12px; font-size: 20px; background-color: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                style="padding: 0 10px; font-size: 18px; background-color: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                             🔄
                         </button>
                     </div>
-                    <div id="mensagemResultado" style="margin-top: 10px; padding: 8px; border-radius: 4px; font-size: 12px; display: none;"></div>
+                    <div id="mensagemResultado" style="margin-top: 8px; padding: 6px; border-radius: 4px; font-size: 11px; display: none;"></div>
                 </div>
                 
-                <!-- Outros grupos virão aqui -->
+                <!-- Grupo: Gravar Autorização -->
+                <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 13px;">Gravar Autorização:</label>
+                    
+                    <input type="text" id="inputChave" placeholder="Chave (44 caracteres)" maxlength="44"
+                           style="width: 100%; padding: 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 6px; font-family: monospace; box-sizing: border-box;">
+                    
+                    <input type="text" id="inputAutorizacao" placeholder="Autorização"
+                           style="width: 100%; padding: 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 6px; box-sizing: border-box;">
+                    
+                    <input type="datetime-local" id="inputDataHora"
+                           style="width: 100%; padding: 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 6px; box-sizing: border-box;">
+                    
+                    <button id="btnGravarAutorizacao" title="Gravar Autorização" 
+                            style="width: 100%; padding: 8px; font-size: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; box-sizing: border-box;">
+                        💾 Gravar Autorização
+                    </button>
+                    
+                    <div id="mensagemAutorizacao" style="margin-top: 8px; padding: 6px; border-radius: 4px; font-size: 11px; display: none;"></div>
+                </div>
                 
             </fieldset>
         </div>
@@ -332,6 +351,86 @@
                     complete: function() {
                         // Reabilita o botão
                         btnZerar.prop('disabled', false).css('opacity', '1');
+                    }
+                });
+            }
+        });
+    });
+
+    // Função para o botão Gravar Autorização
+    $(document).ready(function() {
+        // Define data/hora atual ao carregar a página
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        $('#inputDataHora').val(now.toISOString().slice(0, 16));
+        
+        $('#btnGravarAutorizacao').on('click', function() {
+            var chave = $('#inputChave').val().trim();
+            var autorizacao = $('#inputAutorizacao').val().trim();
+            var dataHora = $('#inputDataHora').val();
+            var mensagemDiv = $('#mensagemAutorizacao');
+            
+            // Validações
+            if (!chave || !autorizacao || !dataHora) {
+                mensagemDiv.css('background-color', '#f44336').css('color', 'white')
+                           .text('Por favor, preencha todos os campos').show();
+                setTimeout(function() { mensagemDiv.fadeOut(); }, 3000);
+                return;
+            }
+            
+            if (chave.length !== 44) {
+                mensagemDiv.css('background-color', '#f44336').css('color', 'white')
+                           .text('A chave deve ter exatamente 44 caracteres').show();
+                setTimeout(function() { mensagemDiv.fadeOut(); }, 3000);
+                return;
+            }
+            
+            // Converte data para formato SQL Server (YYYYMMDD HH:mm:ss)
+            var dataFormatada = dataHora.replace('T', ' ').replace(/-/g, '').substring(0, 8) + ' ' + 
+                               dataHora.split('T')[1] + ':00';
+            
+            if (confirm('Tem certeza que deseja gravar a autorização?\n\nChave: ' + chave + '\nAutorização: ' + autorizacao)) {
+                // Desabilita o botão
+                var btnGravar = $('#btnGravarAutorizacao');
+                btnGravar.prop('disabled', true).css('opacity', '0.5');
+                
+                $.ajax({
+                    url: API_BASE_URL + '/pedidos/gravarautorizacao',
+                    type: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        chave: chave,
+                        autorizacao: autorizacao,
+                        dataHora: dataFormatada
+                    }),
+                    success: function(response) {
+                        mensagemDiv.css('background-color', '#4CAF50').css('color', 'white')
+                                   .text('Autorização gravada com sucesso!').show();
+                        
+                        // Limpa os campos
+                        $('#inputChave').val('');
+                        $('#inputAutorizacao').val('');
+                        
+                        // Redefine data/hora atual
+                        var now = new Date();
+                        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                        $('#inputDataHora').val(now.toISOString().slice(0, 16));
+                        
+                        // Recarrega a tabela de NFs
+                        $('#minhaTabela1').DataTable().ajax.reload();
+                        
+                        setTimeout(function() { mensagemDiv.fadeOut(); }, 3000);
+                    },
+                    error: function(xhr, status, error) {
+                        var errorMsg = xhr.responseJSON && xhr.responseJSON.error 
+                                       ? xhr.responseJSON.error 
+                                       : 'Erro ao gravar autorização';
+                        mensagemDiv.css('background-color', '#f44336').css('color', 'white')
+                                   .text(errorMsg).show();
+                        setTimeout(function() { mensagemDiv.fadeOut(); }, 3000);
+                    },
+                    complete: function() {
+                        btnGravar.prop('disabled', false).css('opacity', '1');
                     }
                 });
             }
