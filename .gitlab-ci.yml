@@ -1,0 +1,23 @@
+# Pipeline básico para desabilitar Auto DevOps
+# Este arquivo desabilita o Auto DevOps e define um pipeline mínimo
+
+stages:
+  - validate
+
+# Validação básica do projeto
+validate:
+  stage: validate
+  image: node:18
+  before_script:
+    - npm install
+  script:
+    - echo "Validando projeto Node.js"
+    - node --version
+    - npm --version
+  only:
+    - main
+    - master
+    - branches
+  tags:
+    - docker
+
