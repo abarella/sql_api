@@ -1,3 +1,0 @@
-API rodando na porta \\.\pipe\826aba35-8176-42a8-91d1-8ed412d19184
-Ambiente: production
-Conectado ao banco de dados

@@ -42,7 +42,7 @@
     </style>
 </head>
 <body>
-    <div class="applicationname-light-login header-title">Olá Development Team!</div>
+    <div class="applicationname-light-login header-title" id="headerUsuario">Olá Development Team!</div>
     
     <div class="container-main">
         <!-- Área de Visualização (70%) -->
@@ -159,147 +159,170 @@
   
 
     <script>
-        // Detecta o hostname atual e usa a URL correta da API
-        var API_BASE_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000' 
-            : 'http://' + window.location.hostname + ':3000';
+        // Detecta se está rodando localmente com node (porta 3000) ou no IIS (qualquer outra porta)
+        function getApiBaseUrl() {
+            var port = window.location.port;
+            var hostname = window.location.hostname;
+            var protocol = window.location.protocol;
+            
+            // Se está na porta 3000, usa ela diretamente (desenvolvimento local com npm run dev)
+            if (port === '3000') {
+                return protocol + '//' + hostname + ':3000';
+            }
+            
+            // Para qualquer outra porta (incluindo 84, 80, 443, etc.), usa a mesma URL base
+            // Isso funciona tanto para IIS quanto para outras configurações
+            return window.location.origin;
+        }
         
-        console.log('API Base URL:', API_BASE_URL);
+        var API_BASE_URL = getApiBaseUrl();
+        console.log('🌐 Ambiente detectado:', {
+            hostname: window.location.hostname,
+            port: window.location.port || 'default',
+            protocol: window.location.protocol,
+            origin: window.location.origin,
+            apiUrl: API_BASE_URL,
+            isDevelopment: window.location.port === '3000',
+            isIIS: window.location.port !== '3000'
+        });
+        
+        // Alerta se está no IIS mas as APIs podem não funcionar
+        if (window.location.port !== '3000') {
+            console.log('⚠️ Detectado ambiente IIS/Produção na porta ' + (window.location.port || '80') + '. Se os dados não carregarem, verifique se o IISNode está configurado corretamente.');
+        }
 
         $(document).ready(function() {
-        var tabela = $('#minhaTabela').DataTable({
-            "ajax": {
-                "url": API_BASE_URL + "/pedidos/producaohoje",
-                "dataSrc": function(json) {
-                    var soma = json.reduce(function(total, item) {
-                        return total + (parseInt(item.regs) || 0);
-                    }, 0);
-                    $('#sumQtde').text('(' + soma + ')');
-                    return json;
+            // Carregar nome do usu�rio logado
+            $.ajax({
+                url: API_BASE_URL + '/api/usuario',
+                type: 'GET',
+                success: function(response) {
+                    if (response && response.usuario) {
+                        $('#headerUsuario').text('Olá ' + response.usuario + '!');
+                    }
+                },
+                error: function() {
+                    // Se falhar, mant�m o texto padr�o
+                    console.log('Nao foi possivel obter o nome do usuario');
                 }
-            },
-            "bPaginate": false,
-            "bFilter": false,
-            "bInfo": false,
-            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
-            "columns":  [
-                { data: 'id' },
-                { data: 'p110prod' },
-                { data: 'p110lote' },
-                { data: 'p110serie' },
-                { data: 'regs' },
-            ]
-        });
-
-        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
-        setInterval(function() {
-            tabela.ajax.reload();
-        }, 5000);
-    });
-
-
-    $(document).ready(function() {
-        var tabela = $('#minhaTabela1').DataTable({
-            "ajax": {
-                "url": API_BASE_URL + "/pedidos/nfandamento",
-                "dataSrc": function(json) {
-                    $('#countNfs').text('(' + json.length + ')');
-                    return json;
-                }
-            },
-            "bPaginate": false,
-            "bFilter": false,
-            "bInfo": false,
-            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
-            "columns":  [
-                { data: 'nNF' },
-                { data: 'notafis_oid' },
-                { data: 'emissor' },
-                { data: 'tentativas' },
-                { data: 'enderdest_UF' },
-                { data: 'p110chve' },
-                { data: 'p110serie' },
-                { data: 'p110atv' },
-                { data: 'chave_acesso' },
-                { data: 'p110trn2' },
+            });
+            
+            // Função para tratar erros de AJAX
+            function handleAjaxError(xhr, textStatus, errorThrown, tableName) {
+                console.error('❌ Erro na tabela', tableName + ':', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    textStatus: textStatus,
+                    errorThrown: errorThrown,
+                    apiUrl: API_BASE_URL
+                });
                 
-                
-            ]
-        });
+                // Mostrar erro visual na tabela
+                $('#' + tableName + ' tbody').html(
+                    '<tr><td colspan="10" style="color: red; text-align: center; padding: 20px;">' +
+                    '❌ Erro ao carregar dados<br>' +
+                    'Status: ' + xhr.status + ' - ' + (xhr.statusText || 'Erro de conexão') + '<br>' +
+                    'API: ' + API_BASE_URL + '<br>' +
+                    '<small>Verifique se a API está funcionando acessando: <a href="' + API_BASE_URL + '/api/status" target="_blank">' + API_BASE_URL + '/api/status</a></small>' +
+                    '</td></tr>'
+                );
+            }
+            
+            // Inicializar tabela 1: Produção Hoje
+            var tabela1 = $('#minhaTabela').DataTable({
+                "ajax": {
+                    "url": API_BASE_URL + "/pedidos/producaohoje",
+                    "dataSrc": function(json) {
+                        var soma = json.reduce(function(total, item) {
+                            return total + (parseInt(item.regs) || 0);
+                        }, 0);
+                        $('#sumQtde').text('(' + soma + ')');
+                        return json;
+                    },
+                    "error": function(xhr, textStatus, errorThrown) {
+                        handleAjaxError(xhr, textStatus, errorThrown, 'minhaTabela');
+                    }
+                },
+                "bPaginate": false,
+                "bFilter": false,
+                "bInfo": false,
+                "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+                "columns":  [
+                    { data: 'id' },
+                    { data: 'p110prod' },
+                    { data: 'p110lote' },
+                    { data: 'p110serie' },
+                    { data: 'regs' },
+                ]
+            });
 
-        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
-        setInterval(function() {
-            tabela.ajax.reload();
-        }, 5000);
-    });
+            // Inicializar tabela 2: Nfs Agora
+            var tabela2 = $('#minhaTabela1').DataTable({
+                "ajax": {
+                    "url": API_BASE_URL + "/pedidos/nfandamento",
+                    "dataSrc": function(json) {
+                        $('#countNfs').text('(' + json.length + ')');
+                        return json;
+                    },
+                    "error": function(xhr, textStatus, errorThrown) {
+                        handleAjaxError(xhr, textStatus, errorThrown, 'minhaTabela1');
+                    }
+                },
+                "bPaginate": false,
+                "bFilter": false,
+                "bInfo": false,
+                "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+                "columns":  [
+                    { data: 'nNF' },
+                    { data: 'notafis_oid' },
+                    { data: 'emissor' },
+                    { data: 'tentativas' },
+                    { data: 'enderdest_UF' },
+                    { data: 'p110chve' },
+                    { data: 'p110serie' },
+                    { data: 'p110atv' },
+                    { data: 'chave_acesso' },
+                    { data: 'p110trn2' },
+                ]
+            });
 
+            // Inicializar tabela 3: Produção Amanhã
+            var tabela3 = $('#minhaTabela2').DataTable({
+                "ajax": {
+                    "url": API_BASE_URL + "/pedidos/producaoamanha",
+                    "dataSrc": function(json) {
+                        var soma = json.reduce(function(total, item) {
+                            return total + (parseInt(item.regs) || 0);
+                        }, 0);
+                        $('#sumQtdeAmanha').text('(' + soma + ')');
+                        return json;
+                    },
+                    "error": function(xhr, textStatus, errorThrown) {
+                        handleAjaxError(xhr, textStatus, errorThrown, 'minhaTabela2');
+                    }
+                },
+                "bPaginate": false,
+                "bFilter": false,
+                "bInfo": false,
+                "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
+                "columns":  [
+                    { data: 'p110prod' },
+                    { data: 'p110lote' },
+                    { data: 'p110serie' },
+                    { data: 'regs' },
+                ]
+            });
 
-    $(document).ready(function() {
-        var tabela = $('#minhaTabela2').DataTable({
-            "ajax": {
-                "url": API_BASE_URL + "/pedidos/producaoamanha",
-                "dataSrc": function(json) {
-                    var soma = json.reduce(function(total, item) {
-                        return total + (parseInt(item.regs) || 0);
-                    }, 0);
-                    $('#sumQtdeAmanha').text('(' + soma + ')');
-                    return json;
-                }
-            },
-            "bPaginate": false,
-            "bFilter": false,
-            "bInfo": false,
-            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
-            "columns":  [
-                { data: 'p110prod' },
-                { data: 'p110lote' },
-                { data: 'p110serie' },
-                { data: 'regs' },
-            ]
-        });
-
-        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
-        setInterval(function() {
-            tabela.ajax.reload();
-        }, 5000);
-    });
-
-
-    
-
-    $(document).ready(function() {
-        var tabela = $('#minhaTabela3').DataTable({
-            "ajax": {
-                "url": API_BASE_URL + "/pedidos/cobrancablindagem",
-                "dataSrc": ""
-            },
-            "bPaginate": false,
-            "bFilter": false,
-            "bInfo": false,
-            "language": {"url": "https://cdn.datatables.net/plug-ins/1.12.1/i18n/pt-BR.json"},
-            "columns":  [
-                { data: 'p110ccli' },
-                { data: 'p110cres' },
-                { data: 'cgc_cli' },
-                { data: 'email' },
-                { data: 'responsavel' },
-                { data: 'raz_soc' },
-                { data: 'siafi' },
-            ]
-        });
-
-        // Atualiza a tabela a cada 5 segundos (5000 milissegundos)
-        setInterval(function() {
-            tabela.ajax.reload();
-        }, 5000);
-    });
-
-    
-    
-    // Função para o botão Zerar Tentativas
-    $(document).ready(function() {
-        $('#btnZerarTentativas').on('click', function() {
-            var notafisOid = $('#inputNotafisOid').val();
+            // Atualizar todas as tabelas a cada 5 segundos
+            setInterval(function() {
+                tabela1.ajax.reload();
+                tabela2.ajax.reload();
+                tabela3.ajax.reload();
+            }, 5000);
+            
+            // Função para o botão Zerar Tentativas
+            $('#btnZerarTentativas').on('click', function() {
+                var notafisOid = $('#inputNotafisOid').val();
             var mensagemDiv = $('#mensagemResultado');
             
             // Validação
@@ -354,18 +377,16 @@
                     }
                 });
             }
-        });
-    });
-
-    // Função para o botão Gravar Autorização
-    $(document).ready(function() {
-        // Define data/hora atual ao carregar a página
-        var now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        $('#inputDataHora').val(now.toISOString().slice(0, 16));
-        
-        $('#btnGravarAutorizacao').on('click', function() {
-            var chave = $('#inputChave').val().trim();
+            });
+            
+            // Função para o botão Gravar Autorização
+            // Define data/hora atual ao carregar a página
+            var now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            $('#inputDataHora').val(now.toISOString().slice(0, 16));
+            
+            $('#btnGravarAutorizacao').on('click', function() {
+                var chave = $('#inputChave').val().trim();
             var autorizacao = $('#inputAutorizacao').val().trim();
             var dataHora = $('#inputDataHora').val();
             var mensagemDiv = $('#mensagemAutorizacao');
@@ -422,20 +443,35 @@
                         setTimeout(function() { mensagemDiv.fadeOut(); }, 3000);
                     },
                     error: function(xhr, status, error) {
-                        var errorMsg = xhr.responseJSON && xhr.responseJSON.error 
-                                       ? xhr.responseJSON.error 
-                                       : 'Erro ao gravar autorização';
+                        var response = xhr.responseJSON || {};
+                        var errorMsg = response.error || 'Erro ao gravar autoriza��o';
+                        var detalhe = response.detalhe || '';
+                        var query = response.query || '';
+                        
+                        // Monta mensagem completa para o alert
+                        var mensagemCompleta = errorMsg;
+                        if (detalhe) {
+                            mensagemCompleta += '\n\nDetalhe: ' + detalhe;
+                        }
+                        if (query) {
+                            mensagemCompleta += '\n\nQuery executada:\n' + query;
+                        }
+                        
+                        // Mostra no alert
+                        alert(mensagemCompleta);
+                        
+                        // Mostra tamb�m na div de mensagem (vers�o resumida)
                         mensagemDiv.css('background-color', '#f44336').css('color', 'white')
-                                   .text(errorMsg).show();
-                        setTimeout(function() { mensagemDiv.fadeOut(); }, 3000);
+                                   .text(errorMsg + (detalhe ? ': ' + detalhe : '')).show();
+                        setTimeout(function() { mensagemDiv.fadeOut(); }, 5000);
                     },
                     complete: function() {
                         btnGravar.prop('disabled', false).css('opacity', '1');
                     }
                 });
             }
+            });
         });
-    });
 
     </script>
 

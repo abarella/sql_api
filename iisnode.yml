@@ -1,7 +1,6 @@
-# Configuração do iisnode
-loggingEnabled: true
-devErrorsEnabled: true
+# Configuracao do iisnode
+loggingEnabled: false
+devErrorsEnabled: false
 logDirectory: iisnode
 node_env: production
 nodeProcessCommandLine: "C:\Program Files\nodejs\node.exe"
-

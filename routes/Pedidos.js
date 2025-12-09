@@ -170,13 +170,51 @@ router.put("/gravarautorizacao", async (req, res) => {
     });
   }
   
-  const query = "vendasinternet..PNFE_GRAVA_AUTORIZACAO";
+  const query = "vendasInternet.dbo.PNFE_GRAVA_AUTORIZACAO";
+  
+  // Parâmetros conforme a definição da procedure:
+  // @recibo_numero, @protocolo_autorizacao, @data_retorno, @envio_data, 
+  // @data_processamento, @envio_lote, @recibo_data, @status_nf, @chave_acesso
+  const values = [
+    autorizacao,           // @recibo_numero (protocolo)
+    autorizacao,           // @protocolo_autorizacao (protocolo)
+    dataHora,              // @data_retorno
+    dataHora,              // @envio_data
+    dataHora,              // @data_processamento
+    chave,                 // @envio_lote (usando a chave como lote)
+    dataHora,              // @recibo_data
+    100,                   // @status_nf
+    chave                  // @chave_acesso
+  ];
+  
+  const paramNames = [
+    "recibo_numero",
+    "protocolo_autorizacao",
+    "data_retorno",
+    "envio_data",
+    "data_processamento",
+    "envio_lote",
+    "recibo_data",
+    "status_nf",
+    "chave_acesso"
+  ];
+  
+  // Log para debug
+  console.log('?? Parâmetros sendo enviados:');
+  paramNames.forEach((name, index) => {
+    console.log(`  @${name} = ${values[index]}`);
+  });
+  
+  // Monta a query formatada para exibição
+  let queryFormatada = `EXEC ${query}`;
+  const paramsFormatados = paramNames.map((name, index) => `@${name} = '${values[index]}'`).join(', ');
+  queryFormatada += ` ${paramsFormatados}`;
   
   try {
     const result = await db.executeQuery(
       query,
-      [autorizacao, autorizacao, dataHora, dataHora, dataHora, chave, dataHora, 100, chave],
-      ["auto1", "auto2", "data1", "data2", "data3", "chave1", "data4", "param8", "chave2"],
+      values,
+      paramNames,
       true  // Ã‰ stored procedure
     );
     
@@ -187,9 +225,15 @@ router.put("/gravarautorizacao", async (req, res) => {
       autorizacao: autorizacao
     });
   } catch (error) {
+    // Log detalhado do erro
+    console.error('? Erro ao executar procedure:', error.message);
+    console.error('?? Parâmetros enviados:', paramNames.map((name, index) => `@${name} = ${values[index]}`).join(', '));
+    
     res.status(500).send({ 
-      error: 'Erro ao gravar autorizaÃ§Ã£o.', 
-      detalhe: error.message 
+      error: 'Erro ao gravar autorização.', 
+      detalhe: error.message,
+      query: queryFormatada,
+      parametrosEnviados: paramNames.map((name, index) => ({ nome: name, valor: values[index] }))
     });
   }
 });
